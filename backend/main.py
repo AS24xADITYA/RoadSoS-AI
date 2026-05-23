@@ -3,8 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
-# Import routers (to be created)
-from routers import voice, emergency, sos, ai_chat, cache, report, health
+# Import database
+from db.database import engine, Base
+
+# Import routers
+from routers import voice, emergency, sos, ai_chat, cache, report, health, auth, profile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -13,6 +16,8 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup logic
     logger.info("Starting RoadSoS AI Backend...")
+    # Create database tables
+    Base.metadata.create_all(bind=engine)
     yield
     # Shutdown logic
     logger.info("Shutting down RoadSoS AI Backend...")
@@ -27,13 +32,15 @@ app = FastAPI(
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["*"], # For hackathon demo simplicity
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include Routers
+app.include_router(auth.router)
+app.include_router(profile.router)
 app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
 app.include_router(emergency.router, prefix="/api/emergency", tags=["Emergency"])
 app.include_router(sos.router, prefix="/api/sos", tags=["SOS"])
